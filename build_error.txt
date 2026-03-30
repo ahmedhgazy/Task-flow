@@ -1,0 +1,29 @@
+
+> task-flow@0.0.0 build
+> ng build
+
+[33m❯[39m Building...
+[32m✔[39m Building...
+Application bundle generation failed. [3.938 seconds] - 2026-03-27T15:15:23.046Z
+
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: RouterLink is not used within the template of InvitationsComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/workspaces/invitations/invitations.component.ts:17:4:
+[37m      17 │     [32mRouterLink[37m,
+         ╵     [32m~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2304: Cannot find name 'WorkspaceInvitation'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/core/services/workspace.service.ts:51:33:
+[37m      51 │   getMyInvitations(): Observable<[32mWorkspaceInvitation[37m[]> {
+         ╵                                  [32m~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2304: Cannot find name 'WorkspaceInvitation'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/core/services/workspace.service.ts:52:25:
+[37m      52 │     return this.http.get<[32mWorkspaceInvitation[37m[]>(`${this.baseUrl}/i...
+         ╵                          [32m~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m

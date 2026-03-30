@@ -1,0 +1,436 @@
+<div class="card-dialog">
+  <!-- Glassmorphism Header -->
+  <div class="dialog-header px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+    <div class="header-content flex-col sm:flex-row items-start sm:items-center">
+      <div class="card-icon shrink-0" [class.type-task]="card.type === 'Task'" [class.type-story]="card.type === 'Story'" [class.type-bug]="card.type === 'Bug'" [class.type-epic]="card.type === 'Epic'">
+        <mat-icon>{{ getTypeIcon(card.type) }}</mat-icon>
+      </div>
+      <div class="header-text mt-2 sm:mt-0">
+        <h2 style="color: var(--text-main)">{{ card.title }}</h2>
+        <span class="card-meta">
+          {{ card.type || 'Task' }} · Card Details
+        </span>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn shrink-0 ml-2" (click)="dialogRef.close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  @if (isLocked && !isLockedByMe) {
+    <div class="lock-warning mx-4 sm:mx-8">
+      <mat-icon>lock</mat-icon>
+      <span>This card is being edited by another user</span>
+    </div>
+  }
+
+  <!-- Main Content Grid -->
+  <div class="dialog-body p-4 sm:p-6 md:p-8">
+    <div class="main-content">
+      <!-- Description Section -->
+      <div class="section">
+        <div class="section-header">
+          <mat-icon class="text-primary" style="color: var(--color-primary)">description</mat-icon>
+          <h3 style="color: var(--text-main)">Description</h3>
+        </div>
+        <form [formGroup]="form">
+          <mat-form-field appearance="outline" class="w-full">
+            <textarea matInput formControlName="description" rows="4"
+                      placeholder="Add a more detailed description..."></textarea>
+          </mat-form-field>
+        </form>
+      </div>
+
+      <!-- Checklists Section -->
+      @for (checklist of card.checklists; track checklist.id) {
+        <div class="section checklist-section">
+          <div class="section-header">
+            <mat-icon style="color: var(--color-primary)">check_box</mat-icon>
+            <h3 style="color: var(--text-main)">{{ checklist.title }}</h3>
+            <button mat-icon-button color="warn" class="delete-checklist-btn" (click)="deleteChecklist(checklist.id)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+
+          <div class="checklist-progress">
+            <span class="progress-text">{{ calculateProgress(checklist) }}%</span>
+            <mat-progress-bar mode="determinate" [value]="calculateProgress(checklist)"></mat-progress-bar>
+          </div>
+
+          <div class="checklist-items">
+            @for (item of checklist.items; track item.id) {
+              <div class="checklist-item" [class.completed]="item.isChecked">
+                <mat-checkbox [checked]="item.isChecked" (change)="toggleItem(checklist.id, item)" color="primary">
+                  <span class="item-text" [ngStyle]="{'color': item.isChecked ? 'var(--text-muted)' : 'var(--text-main)'}">{{ item.content }}</span>
+                </mat-checkbox>
+                <button mat-icon-button class="remove-item-btn" (click)="deleteItem(checklist.id, item.id)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="add-item-row">
+            <input #itemInput type="text" placeholder="Add an item..."
+                   (keyup.enter)="addItem(checklist.id, itemInput)">
+            <button mat-button (click)="addItem(checklist.id, itemInput)">Add</button>
+          </div>
+        </div>
+      }
+
+      <!-- Attachments Section -->
+      <div class="section attachments-section">
+        <div class="section-header">
+          <mat-icon style="color: var(--color-primary)">attach_file</mat-icon>
+          <h3 style="color: var(--text-main)">Attachments</h3>
+          <button mat-icon-button class="add-btn" (click)="triggerFileUpload()">
+            <mat-icon>add</mat-icon>
+          </button>
+          <input #fileInput type="file" hidden (change)="onFileSelected($event)" multiple>
+        </div>
+
+        <div class="attachments-list grid grid-cols-1 sm:grid-cols-2 gap-3">
+          @for (attachment of card.attachments; track attachment.id) {
+            <div class="attachment-item">
+              <div class="attachment-thumbnail">
+                @if (isImage(attachment)) {
+                  <img [src]="attachment.fileUrl" [alt]="attachment.fileName">
+                } @else {
+                  <div class="file-icon">{{ getFileExtension(attachment.fileName) }}</div>
+                }
+              </div>
+
+              <div class="attachment-details min-w-0">
+                <span class="attachment-name">{{ attachment.fileName }}</span>
+                <span class="attachment-meta break-words">
+                  {{ formatFileSize(attachment.fileSize) }} • {{ attachment.createdAt | date:'MMM d, h:mm a' }}
+                </span>
+                <div class="attachment-actions mt-1">
+                  <a [href]="attachment.fileUrl" target="_blank" class="action-link">Download</a>
+                  <button class="action-btn" (click)="deleteAttachment(attachment.id)">Delete</button>
+                </div>
+              </div>
+            </div>
+          }
+          @if (!card.attachments || card.attachments.length === 0) {
+            <div class="empty-text col-span-1 border-0">No attachments</div>
+          }
+        </div>
+      </div>
+
+      <!-- Labels Section -->
+      <div class="section">
+        <div class="section-header">
+          <mat-icon style="color: var(--color-primary)">label</mat-icon>
+          <h3 style="color: var(--text-main)">Labels</h3>
+          <button mat-icon-button class="add-btn" [matMenuTriggerFor]="labelMenu">
+            <mat-icon>add</mat-icon>
+          </button>
+          <mat-menu #labelMenu="matMenu" class="label-menu">
+            <div class="menu-header pl-4 py-2 font-medium" style="color: var(--text-muted)" (click)="$event.stopPropagation()">Add Label</div>
+            @for (label of availableLabels; track label.name) {
+              <button mat-menu-item (click)="addLabel(label)">
+                <span class="label-dot" [style.backgroundColor]="label.color"></span>
+                {{ label.name }}
+              </button>
+            }
+            <mat-divider></mat-divider>
+            <div class="flex items-center gap-2 p-2 px-4" (click)="$event.stopPropagation()">
+              <input class="flex-1 bg-transparent border rounded px-2 py-1 text-sm outline-none" style="border-color: var(--input-border); color: var(--text-main)" type="text" [(ngModel)]="newLabelName" placeholder="Custom label">
+              <input class="w-8 h-8 rounded shrink-0 p-0 border-0" type="color" [(ngModel)]="newLabelColor">
+              <button mat-icon-button style="color: var(--color-primary)" class="w-8 h-8 flex items-center justify-center shrink-0" (click)="addCustomLabel()">
+                <mat-icon class="icon-sm text-sm" style="font-size: 18px; width: 18px; height:18px;">check</mat-icon>
+              </button>
+            </div>
+          </mat-menu>
+        </div>
+        <div class="labels-container">
+          @for (label of card.labels; track label.id) {
+            <span class="label-chip" [style.backgroundColor]="label.color">
+              {{ label.name }}
+              <button class="label-remove" (click)="removeLabel(label)">×</button>
+            </span>
+          }
+          @if (card.labels.length === 0) {
+            <span class="empty-text">No labels yet</span>
+          }
+        </div>
+      </div>
+
+      <!-- Comments Section -->
+      <div class="section comments-section">
+        <div class="section-header">
+          <mat-icon style="color: var(--color-primary)">chat_bubble</mat-icon>
+          <h3 style="color: var(--text-main)">Activity</h3>
+        </div>
+
+        <!-- Voice Recording UI -->
+        @if (voiceService.state().isRecording) {
+          <div class="recording-bar glass-panel p-3 mb-4 rounded-xl flex items-center justify-between border" style="border-color: var(--card-border)">
+            <div class="recording-indicator flex items-center gap-3">
+              <span class="pulse-dot w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+              <span class="recording-time font-mono" style="color: var(--text-main)">{{ voiceService.formatDuration(voiceService.state().duration) }}</span>
+            </div>
+            <div class="recording-actions flex items-center gap-2">
+              <button mat-icon-button class="bg-red-500/10 text-red-500" (click)="voiceService.stopRecording()">
+                <mat-icon>stop</mat-icon>
+              </button>
+              <button mat-icon-button (click)="voiceService.cancelRecording()" style="color: var(--text-muted)">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
+        } @else if (voiceService.state().audioUrl) {
+          <div class="voice-preview glass-panel p-3 mb-4 rounded-xl grid gap-3 border" style="border-color: var(--card-border)">
+            <app-custom-audio-player [src]="voiceService.state().audioUrl!"></app-custom-audio-player>
+            <div class="voice-actions flex justify-end gap-2">
+              <button mat-button (click)="voiceService.reset()" style="color: var(--text-muted)">Discard</button>
+              <button mat-raised-button color="primary" (click)="sendVoiceNote()" [disabled]="uploadingVoice()">
+                @if (uploadingVoice()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Send
+                }
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="comment-input-wrapper">
+            <div class="comment-avatar">
+              <mat-icon>person</mat-icon>
+            </div>
+            <div class="comment-input">
+              <input type="text" [(ngModel)]="newComment" placeholder="Write a comment..."
+                     (input)="onCommentInput()"
+                     (keyup.enter)="addComment()">
+              <div class="input-actions flex shrink-0">
+                <button mat-icon-button matTooltip="Record voice note" (click)="startRecording()">
+                  <mat-icon>mic</mat-icon>
+                </button>
+                <button mat-icon-button matTooltip="Send" (click)="addComment()"
+                        [disabled]="!newComment.trim()">
+                  <mat-icon>send</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+          @if (typingUsers().length > 0) {
+            <div class="typing-indicator mt-1 ml-14 flex items-center gap-1 text-indigo-400 text-xs italic animate-pulse mb-3">
+              <mat-icon class="icon-sm-inline" style="font-size: 14px; width: 14px; height: 14px;">edit</mat-icon>
+              <span>{{ typingIndicatorText() }}</span>
+            </div>
+          }
+        }
+
+        <!-- Comments List -->
+        <div class="comments-list">
+          @for (comment of comments(); track comment.id) {
+            <div class="comment-item flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
+              <div class="comment-avatar hidden sm:flex shrink-0">
+                {{ comment.authorName.charAt(0) || 'U' }}
+              </div>
+              <div class="comment-content min-w-0 flex-1">
+                <div class="comment-header flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="comment-avatar sm:hidden w-6 h-6 text-xs shrink-0">
+                      {{ comment.authorName.charAt(0) || 'U' }}
+                    </div>
+                    <strong>{{ comment.authorName }}</strong>
+                    <span class="comment-time">{{ comment.createdAt | date:'short' }}</span>
+                  </div>
+                  <button mat-icon-button class="delete-comment-btn shrink-0 w-8 h-8 flex items-center justify-center p-0" (click)="deleteComment(comment.id)">
+                     <mat-icon class="icon-xs hover:text-red-400 m-0">close</mat-icon>
+                  </button>
+                </div>
+                @if (comment.isVoiceNote) {
+                  <div class="voice-comment mt-2">
+                    <app-custom-audio-player [src]="comment.voiceNoteUrl!"></app-custom-audio-player>
+                  </div>
+                } @else {
+                  <p class="comment-text break-words mt-1">{{ comment.text }}</p>
+                }
+              </div>
+            </div>
+          }
+          @if (comments().length === 0) {
+            <div class="empty-comments empty-text">
+              <mat-icon>chat_bubble_outline</mat-icon>
+              <p>No comments yet. Be the first to comment!</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Activity Log Section -->
+      <div class="section activity-section">
+        <div class="section-header">
+          <mat-icon style="color: var(--color-primary)">history</mat-icon>
+          <h3 style="color: var(--text-main)">Activity Log</h3>
+        </div>
+
+        <div class="activity-list">
+          @for (log of activityLogs(); track log.id) {
+            <div class="activity-item">
+              <div class="activity-avatar shrink-0">
+                 {{ log.userName.charAt(0) || 'U' }}
+              </div>
+              <div class="activity-content min-w-0">
+                <span class="activity-text break-words">
+                  <strong>{{ log.userName }}</strong>
+                  <span class="log-details ml-1">{{ log.details }}</span>
+                </span>
+                <span class="activity-time break-words">{{ log.timestamp | date:'MMM d, h:mm a' }}</span>
+              </div>
+            </div>
+          }
+          @if (activityLogs().length === 0) {
+             <div class="empty-text">No activity yet</div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <h4 style="color: var(--text-muted)">Details</h4>
+        <form [formGroup]="form">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Title</mat-label>
+            <input matInput formControlName="title">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Type</mat-label>
+            <mat-select formControlName="type">
+              <mat-option value="Task"><mat-icon class="text-blue-400 icon-sm-inline">check_box_outline_blank</mat-icon> Task</mat-option>
+              <mat-option value="Story"><mat-icon class="text-emerald-400 icon-sm-inline">auto_stories</mat-icon> Story</mat-option>
+              <mat-option value="Bug"><mat-icon class="text-red-400 icon-sm-inline">bug_report</mat-icon> Bug</mat-option>
+              <mat-option value="Epic"><mat-icon class="text-purple-400 icon-sm-inline">bolt</mat-icon> Epic</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Priority</mat-label>
+            <mat-select formControlName="priority">
+              <mat-option value="Low">
+                <span class="priority-option low" style="color: #10b981">● Low</span>
+              </mat-option>
+              <mat-option value="Medium">
+                <span class="priority-option medium" style="color: #3b82f6">● Medium</span>
+              </mat-option>
+              <mat-option value="High">
+                <span class="priority-option high" style="color: #f97316">● High</span>
+              </mat-option>
+              <mat-option value="Urgent">
+                <span class="priority-option urgent" style="color: #ef4444">● Urgent</span>
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Due Date</mat-label>
+            <input matInput [matDatepicker]="picker" formControlName="dueDate">
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+          </mat-form-field>
+
+          <div class="grid grid-cols-2 gap-3">
+            <mat-form-field appearance="outline">
+              <mat-label>Story Points</mat-label>
+              <input matInput type="number" formControlName="storyPoints" min="0" max="100">
+              <mat-icon matSuffix class="text-indigo-400 text-sm">speed</mat-icon>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Est. Hours</mat-label>
+              <input matInput type="number" formControlName="estimatedHours" min="0" step="0.5">
+              <mat-icon matSuffix class="text-indigo-400 text-sm">timer</mat-icon>
+            </mat-form-field>
+          </div>
+        </form>
+
+        <!-- Time Tracking -->
+        @if (card.estimatedHours || card.loggedHours > 0) {
+          <div class="time-tracking-display">
+            <h4 style="color: var(--text-muted)">Time Tracking</h4>
+            <div class="time-bar-container">
+              <mat-progress-bar mode="determinate" [value]="getTimeProgress()"></mat-progress-bar>
+              <div class="time-labels">
+                <span>{{ card.loggedHours }}h logged</span>
+                @if (card.estimatedHours) {
+                  <span>{{ card.estimatedHours }}h estimated</span>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="sidebar-section mt-6">
+        <h4 style="color: var(--text-muted)">Assignees</h4>
+        <div class="assignees-list flex flex-wrap gap-2 mb-2">
+          @for (assignee of card.assignees; track assignee.userId) {
+            <div class="assignee-chip">
+              <div class="assignee-avatar shrink-0">
+                {{ assignee.firstName.charAt(0) }}{{ assignee.lastName.charAt(0) }}
+              </div>
+              <span class="truncate">{{ assignee.firstName }}</span>
+              <button class="remove-btn shrink-0" (click)="removeAssignee(assignee)">×</button>
+            </div>
+          }
+        </div>
+        <button mat-stroked-button class="add-assignee-btn w-full text-left justify-start" [matMenuTriggerFor]="assigneeMenu">
+          <mat-icon>person_add</mat-icon>
+          Add Assignee
+        </button>
+        <mat-menu #assigneeMenu="matMenu">
+          @for (member of availableMembers(); track member.userId) {
+            <button mat-menu-item (click)="addAssignee(member)">
+              <span class="member-avatar w-6 h-6 inline-flex items-center justify-center rounded-md bg-indigo-500 text-white text-[10px] font-bold mr-2">{{ member.firstName.charAt(0) }}{{ member.lastName.charAt(0) }}</span>
+              {{ member.firstName }} {{ member.lastName }}
+            </button>
+          }
+          @if (availableMembers().length === 0) {
+            <div class="menu-empty p-3 text-sm" style="color: var(--text-disabled)">All members assigned</div>
+          }
+        </mat-menu>
+      </div>
+
+      <div class="sidebar-section mt-6">
+        <h4 style="color: var(--text-muted)">Add to card</h4>
+        <div class="grid grid-cols-2 lg:flex lg:flex-col gap-2">
+          <button mat-stroked-button class="sidebar-action-btn w-full justify-start text-left" (click)="addChecklist()">
+            <mat-icon>check_box</mat-icon>
+            Checklist
+          </button>
+          <button mat-stroked-button class="sidebar-action-btn w-full justify-start text-left" (click)="triggerFileUpload()">
+            <mat-icon>attach_file</mat-icon>
+            Attachment
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-section mt-6">
+        <h4 style="color: var(--text-muted)">Actions</h4>
+        <button mat-stroked-button color="warn" class="sidebar-action-btn delete-btn w-full justify-start text-left border-red-500/30 hover:bg-red-500/10 transition-colors" (click)="deleteCard()">
+          <mat-icon class="text-red-500">delete</mat-icon>
+          <span class="text-red-500">Delete Card</span>
+        </button>
+      </div>
+
+      <div class="sidebar-actions mt-6">
+        <button mat-raised-button color="primary" class="save-btn w-full h-[48px]"
+                (click)="onSubmit()" [disabled]="saving() || form.invalid">
+          @if (saving()) {
+            <mat-spinner diameter="18" class="mx-auto"></mat-spinner>
+          } @else {
+            <ng-container>
+              <mat-icon>save</mat-icon>
+              Save Changes
+            </ng-container>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

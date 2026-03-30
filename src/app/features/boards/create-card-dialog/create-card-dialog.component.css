@@ -1,0 +1,5 @@
+.dialog-wrapper {
+  background: var(--color-bg-secondary);
+  color: var(--text-main);
+}
+.icon-sm { font-size: 18px; width: 18px; height: 18px; line-height: 18px; }

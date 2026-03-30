@@ -1,0 +1,15 @@
+<div class="layout-container">
+  <!-- Mobile Header -->
+  <div class="mobile-header lg:hidden fixed top-0 left-0 right-0 h-16 z-30 flex items-center px-4">
+    <button mat-icon-button (click)="toggleSidebar()">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <span class="ml-3 font-display font-bold text-xl">TaskFlow</span>
+  </div>
+
+  <app-sidebar [isOpen]="isSidebarOpen()" (close)="isSidebarOpen.set(false)"></app-sidebar>
+
+  <main class="content-area mt-16 lg:mt-0">
+    <router-outlet></router-outlet>
+  </main>
+</div>

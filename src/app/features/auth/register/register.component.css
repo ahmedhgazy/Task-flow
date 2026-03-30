@@ -1,0 +1,10 @@
+:host { display: block; }
+.auth-page { background-color: var(--auth-bg); }
+.auth-glow-1 { background: var(--auth-glow-1); }
+.auth-glow-2 { background: var(--auth-glow-2); }
+.auth-heading { color: var(--text-main); }
+.auth-subtext { color: var(--text-muted); }
+.auth-footer { color: var(--text-muted); }
+.auth-link { color: var(--color-primary); }
+.auth-link:hover { color: var(--color-primary-hover); }
+.suffix-btn { color: var(--text-muted); }

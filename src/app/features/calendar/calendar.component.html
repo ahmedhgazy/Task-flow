@@ -1,0 +1,110 @@
+<div class="calendar-container p-4 sm:p-6 md:p-8">
+  <!-- Header -->
+  <div class="calendar-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div>
+       <h1 class="text-2xl sm:text-3xl font-bold mb-2" style="color: var(--text-main)">Calendar</h1>
+       <p style="color: var(--text-muted)">View all your tasks organized by due date</p>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
+      <button mat-icon-button class="nav-btn" (click)="previousMonth()">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <h2 class="text-lg sm:text-xl font-semibold min-w-[120px] sm:min-w-[160px] text-center" style="color: var(--text-main)">
+        {{ currentMonthName }} {{ currentYear() }}
+      </h2>
+      <button mat-icon-button class="nav-btn" (click)="nextMonth()">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+      <button mat-stroked-button class="glass-btn ml-0 sm:ml-4" (click)="goToToday()">
+        Today
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <!-- Calendar Grid -->
+    <div class="calendar-grid glass-panel overflow-x-auto">
+      <div class="min-w-[700px]">
+        <!-- Day Headers -->
+        <div class="day-headers">
+          @for (day of weekDays; track day) {
+            <div class="day-header">{{ day }}</div>
+          }
+        </div>
+
+        <!-- Calendar Days -->
+        <div class="days-grid">
+          @for (day of calendarDays(); track day.date.toISOString()) {
+            <div class="calendar-day"
+                 [class.other-month]="!day.isCurrentMonth"
+                 [class.today]="day.isToday">
+              <div class="day-number" [class.today-badge]="day.isToday">
+                {{ day.date.getDate() }}
+              </div>
+              <div class="day-cards">
+                @for (card of day.cards.slice(0, 3); track card.id) {
+                  <div class="card-pill cursor-pointer"
+                       (click)="openCardDetail(card)"
+                       [class.priority-low]="card.priority === 'Low'"
+                       [class.priority-medium]="card.priority === 'Medium'"
+                       [class.priority-high]="card.priority === 'High'"
+                       [class.priority-urgent]="card.priority === 'Urgent'"
+                       [matTooltip]="card.title + ' - ' + card.boardName">
+                    {{ card.title | slice:0:20 }}{{ card.title.length > 20 ? '...' : '' }}
+                  </div>
+                }
+                @if (day.cards.length > 3) {
+                  <div class="more-cards">+{{ day.cards.length - 3 }} more</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming Tasks Sidebar -->
+    <div class="upcoming-section glass-panel mt-6">
+      <h3 class="text-lg font-semibold mb-4 flex items-center gap-2" style="color: var(--text-main)">
+        <mat-icon class="text-primary">upcoming</mat-icon>
+        Upcoming Due Dates
+      </h3>
+      <div class="upcoming-list">
+        @for (card of upcomingCards().slice(0, 8); track card.id) {
+          <div class="upcoming-item group">
+            <div class="priority-dot"
+                 [class.bg-emerald-500]="card.priority === 'Low'"
+                 [class.bg-blue-500]="card.priority === 'Medium'"
+                 [class.bg-orange-500]="card.priority === 'High'"
+                 [class.bg-red-500]="card.priority === 'Urgent'"></div>
+            <div class="flex-1 min-w-0 cursor-pointer" (click)="openCardDetail(card)">
+              <p class="text-white/90 font-medium truncate group-hover:text-primary transition-colors">{{ card.title }}</p>
+              <p class="text-white/40 text-xs">{{ card.boardName }} • {{ card.listName }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="text-right">
+                <p class="text-xs font-medium" [class.text-red-400]="isOverdue(card.dueDate)" [class.text-white/60]="!isOverdue(card.dueDate)">
+                  {{ formatDueDate(card.dueDate) }}
+                </p>
+              </div>
+              <a mat-icon-button [routerLink]="['/boards', card.boardId]" matTooltip="Go to board"
+                 class="opacity-0 group-hover:opacity-100 transition-opacity text-white/50 hover:text-white"
+                 style="width: 32px; height: 32px; padding: 4px;">
+                <mat-icon style="font-size: 18px; width: 18px; height: 18px;">open_in_new</mat-icon>
+              </a>
+            </div>
+          </div>
+        } @empty {
+          <div class="text-center py-8 text-white/40">
+            <mat-icon class="text-4xl mb-2">event_available</mat-icon>
+            <p>No upcoming tasks with due dates</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

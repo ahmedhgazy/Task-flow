@@ -1,0 +1,90 @@
+<header class="header-bar flex items-center justify-between px-4 md:px-6 py-4 backdrop-blur-sm relative z-50">
+  <div class="flex items-center gap-4">
+    @if (backLink) {
+      <a [routerLink]="backLink" class="text-white/70 hover:text-white">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+    }
+    <h1 class="text-lg md:text-2xl font-bold" style="color: var(--text-main)">{{ title }}</h1>
+    @if (subtitle) {
+      <span class="hidden sm:inline" style="color: var(--text-muted)">{{ subtitle }}</span>
+    }
+  </div>
+
+  <!-- Search Bar -->
+  <div class="flex-1 max-w-xl mx-4 md:mx-8 relative hidden md:block">
+    <div class="relative group">
+      <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2" style="color: var(--text-muted)">search</mat-icon>
+      <input
+        [formControl]="searchControl"
+        type="text"
+        placeholder="Search boards and cards..."
+        class="w-full rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+        style="background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-main)"
+        (focus)="showResults = true">
+
+      @if (isSearching) {
+        <div class="absolute right-3 top-1/2 -translate-y-1/2">
+          <span class="block w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+        </div>
+      }
+    </div>
+
+    <!-- Search Results Dropdown -->
+    @if (showResults && (results.length > 0 || searchControl.value)) {
+      <div class="absolute top-full left-0 right-0 mt-2 rounded-xl shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto z-50" style="background: var(--dropdown-bg); border: 1px solid var(--card-border)">
+        @if (results.length > 0) {
+          <div class="py-2">
+            @for (item of results; track item.id) {
+              <button (click)="navigateTo(item)" class="w-full px-4 py-3 flex items-start gap-3 text-left transition-colors last:border-0" style="border-bottom: 1px solid var(--card-border)">
+                <div class="mt-1 p-1.5 rounded" style="background: var(--badge-bg); color: var(--text-muted)">
+                  <mat-icon class="text-sm icon-sm">{{ item.type === 'Board' ? 'dashboard' : 'payment' }}</mat-icon>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                     <span class="font-medium truncate" style="color: var(--text-main)">{{ item.title }}</span>
+                     <span class="text-xs uppercase tracking-wider ml-2 shrink-0" style="color: var(--text-disabled)">{{ item.type }}</span>
+                  </div>
+                  <p class="text-sm truncate" style="color: var(--text-muted)">{{ item.description }}</p>
+                  @if (item.subTitle) {
+                     <p class="text-xs mt-0.5" style="color: var(--text-disabled)">{{ item.subTitle }}</p>
+                  }
+                </div>
+              </button>
+            }
+          </div>
+        } @else if (searchControl.value) {
+          <div class="p-8 text-center" style="color: var(--text-muted)">
+            <mat-icon class="mb-2 text-4xl opacity-50">search_off</mat-icon>
+            <p>No results found for "{{ searchControl.value }}"</p>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="flex items-center gap-2 md:gap-4">
+    <ng-content></ng-content>
+
+    <!-- User Menu -->
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-avatar">
+      <div class="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg">
+        {{ getUserInitials() }}
+      </div>
+    </button>
+    <mat-menu #userMenu="matMenu" xPosition="before">
+      <div class="px-4 py-2" style="border-bottom: 1px solid var(--card-border)">
+        <p class="text-sm font-medium" style="color: var(--text-main)">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</p>
+        <p class="text-xs" style="color: var(--text-muted)">{{ currentUser()?.email }}</p>
+      </div>
+      <button mat-menu-item routerLink="/workspaces">
+        <mat-icon>dashboard</mat-icon>
+        <span>Workspaces</span>
+      </button>
+      <button mat-menu-item (click)="logout()">
+        <mat-icon class="text-red-400">logout</mat-icon>
+        <span class="text-red-400">Logout</span>
+      </button>
+    </mat-menu>
+  </div>
+</header>

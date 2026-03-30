@@ -1,0 +1,113 @@
+<!-- Mobile Backdrop -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+     *ngIf="isOpen"
+     (click)="close.emit()">
+</div>
+
+<aside class="sidebar fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 transition-all duration-300 ease-in-out flex flex-col"
+       [class.expanded]="!isCollapsed()"
+       [class.collapsed]="isCollapsed()"
+       [class.translate-x-0]="isOpen"
+       [class.-translate-x-full]="!isOpen">
+
+  <!-- Mobile Close Button -->
+  <button mat-icon-button
+          class="close-btn absolute top-2 right-2 lg:hidden!"
+          (click)="close.emit()">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <!-- Logo Area -->
+  <div class="logo-container cursor-pointer" (click)="toggleCollapse()">
+    <div class="logo-inner">
+      <div class="logo-icon shrink-0">
+        <mat-icon>task_alt</mat-icon>
+      </div>
+      <span class="logo-text"
+            [class.hidden-text]="isCollapsed()">TaskFlow</span>
+    </div>
+    <button mat-icon-button class="collapse-toggle shrink-0"
+            [class.hide-toggle]="isCollapsed()"
+            (click)="$event.stopPropagation(); toggleCollapse()">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-links flex-1 overflow-y-auto">
+    <a routerLink="/workspaces" routerLinkActive="active" class="nav-item"
+       (click)="close.emit()"
+       [matTooltip]="isCollapsed() ? 'Workspaces' : ''" matTooltipPosition="right">
+      <mat-icon class="nav-icon">dashboard</mat-icon>
+      <span class="nav-label" [class.hidden-text]="isCollapsed()">Workspaces</span>
+    </a>
+    <a routerLink="/boards" routerLinkActive="active" class="nav-item"
+       (click)="close.emit()"
+       [matTooltip]="isCollapsed() ? 'Boards' : ''" matTooltipPosition="right">
+      <mat-icon class="nav-icon">layers</mat-icon>
+      <span class="nav-label" [class.hidden-text]="isCollapsed()">Boards</span>
+    </a>
+    <a routerLink="/calendar" routerLinkActive="active" class="nav-item"
+       (click)="close.emit()"
+       [matTooltip]="isCollapsed() ? 'Calendar' : ''" matTooltipPosition="right">
+      <mat-icon class="nav-icon">calendar_today</mat-icon>
+      <span class="nav-label" [class.hidden-text]="isCollapsed()">Calendar</span>
+    </a>
+    <a routerLink="/invitations" routerLinkActive="active" class="nav-item"
+       (click)="close.emit()"
+       [matTooltip]="isCollapsed() ? 'Invitations' : ''" matTooltipPosition="right">
+      <mat-icon class="nav-icon">mail</mat-icon>
+      <span class="nav-label" [class.hidden-text]="isCollapsed()">Invitations</span>
+      @if (pendingInvitationsCount() > 0) {
+        <span class="badge"
+              [class.badge-collapsed]="isCollapsed()">
+          {{ pendingInvitationsCount() }}
+        </span>
+      }
+    </a>
+
+    <!-- Theme Toggle -->
+    <div class="theme-divider"></div>
+    <button class="nav-item theme-toggle" (click)="toggleTheme()"
+            [matTooltip]="isCollapsed() ? (themeService.isDark() ? 'Light Mode' : 'Dark Mode') : ''"
+            matTooltipPosition="right">
+      <mat-icon class="nav-icon">{{ themeService.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      <span class="nav-label" [class.hidden-text]="isCollapsed()">
+        {{ themeService.isDark() ? 'Light Mode' : 'Dark Mode' }}
+      </span>
+    </button>
+  </nav>
+
+  <!-- User Profile -->
+  <div class="user-profile cursor-pointer outline-none"
+       [class.user-profile-collapsed]="isCollapsed()"
+       [matMenuTriggerFor]="userMenu">
+    <div class="avatar-container shrink-0">
+      <div class="avatar">
+        {{ getUserInitials() }}
+      </div>
+      <div class="status-dot"></div>
+    </div>
+    <div class="user-info hidden sm:flex" [class.hidden-text]="isCollapsed()">
+      <span class="user-name">{{ authService.currentUserValue?.firstName }}</span>
+    </div>
+    <button mat-icon-button class="logout-btn ml-auto"
+            (click)="logout(); $event.stopPropagation()"
+            matTooltip="Logout" matTooltipPosition="above"
+            [class.!hidden]="isCollapsed()">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </div>
+
+  <mat-menu #userMenu="matMenu" xPosition="after" yPosition="above" class="taskflow-menu rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] shadow-xl overflow-hidden mt-2 p-0 min-w-[200px]">
+    <div class="px-4 py-3 outline-none">
+      <p class="font-semibold text-[var(--text-main)] m-0 leading-tight">{{ authService.currentUserValue?.firstName }} {{ authService.currentUserValue?.lastName }}</p>
+    </div>
+    <mat-divider></mat-divider>
+
+    <button mat-menu-item (click)="logout()" class="hover:bg-red-500/10">
+      <mat-icon class="text-red-500">logout</mat-icon>
+      <span class="text-red-500 font-medium">Logout</span>
+    </button>
+  </mat-menu>
+</aside>

@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = "dist/taskFlow/browser"
+
+[[redirects]]
+  # Redirect all traffic to index.html for Angular routing
+  from = "/*"
+  to = "/index.html"
+  status = 200

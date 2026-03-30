@@ -1,0 +1,176 @@
+<div class="settings-dialog">
+  <div class="dialog-header px-4 sm:px-6 py-4">
+    <h2 style="color: var(--text-main)">Board Settings</h2>
+    <button mat-icon-button (click)="dialogRef.close()">
+      <mat-icon style="color: var(--text-muted)">close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content">
+    <mat-tab-group>
+      <mat-tab label="Background">
+        <div class="tab-content p-4 sm:p-6">
+          <h3>Solid Colors</h3>
+          <div class="color-grid">
+            @for (color of colors; track color) {
+              <button class="color-btn"
+                      [style.background]="color"
+                      [class.selected]="selectedColor === color"
+                      (click)="selectColor(color)">
+                @if (selectedColor === color) {
+                  <mat-icon>check</mat-icon>
+                }
+              </button>
+            }
+          </div>
+
+          <h3>Gradients</h3>
+          <div class="gradient-grid">
+            @for (gradient of gradients; track gradient) {
+              <button class="gradient-btn"
+                      [style.background]="gradient"
+                      [class.selected]="selectedColor === gradient"
+                      (click)="selectColor(gradient)">
+                @if (selectedColor === gradient) {
+                  <mat-icon>check</mat-icon>
+                }
+              </button>
+            }
+          </div>
+
+          <h3>Custom Image</h3>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Image URL</mat-label>
+            <input matInput [(ngModel)]="imageUrl" placeholder="https://source.unsplash.com/..." (change)="updateImage()">
+            <mat-icon matSuffix style="color: var(--text-muted)">image</mat-icon>
+          </mat-form-field>
+
+          @if (imageUrl) {
+            <div class="image-preview" [style.backgroundImage]="'url(' + imageUrl + ')'"></div>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Automations">
+        <div class="tab-content p-4 sm:p-6">
+          <!-- Create Rule Form -->
+          @if (showCreateRule) {
+            <div class="rule-form">
+              <h3 style="color: var(--text-main)">New Automation Rule</h3>
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Rule Name</mat-label>
+                <input matInput [(ngModel)]="newRule.name" placeholder="e.g. Auto-label bugs">
+              </mat-form-field>
+
+              <div class="flex flex-col sm:flex-row gap-0 sm:gap-3">
+                <mat-form-field appearance="outline" class="w-full sm:flex-1">
+                  <mat-label>When (Trigger)</mat-label>
+                  <mat-select [(ngModel)]="newRule.triggerType">
+                    <mat-option value="CardMovedToList">Card moved to list</mat-option>
+                    <mat-option value="CardCreated">Card created</mat-option>
+                    <mat-option value="LabelAdded">Label added</mat-option>
+                    <mat-option value="DueDatePassed">Due date passed</mat-option>
+                    <mat-option value="CardAssigned">Card assigned</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full sm:flex-1">
+                  <mat-label>Trigger Value</mat-label>
+                  <input matInput [(ngModel)]="newRule.triggerValue" placeholder="e.g. list name">
+                </mat-form-field>
+              </div>
+
+              <div class="flex flex-col sm:flex-row gap-0 sm:gap-3">
+                <mat-form-field appearance="outline" class="w-full sm:flex-1">
+                  <mat-label>Then (Action)</mat-label>
+                  <mat-select [(ngModel)]="newRule.actionType">
+                    <mat-option value="SetLabel">Set label</mat-option>
+                    <mat-option value="RemoveAllAssignees">Remove all assignees</mat-option>
+                    <mat-option value="SetPriority">Set priority</mat-option>
+                    <mat-option value="MoveToList">Move to list</mat-option>
+                    <mat-option value="SendWebhook">Send webhook</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full sm:flex-1">
+                  <mat-label>Action Value</mat-label>
+                  <input matInput [(ngModel)]="newRule.actionValue" placeholder="e.g. label name">
+                </mat-form-field>
+              </div>
+
+              <div class="flex gap-2 justify-end mt-2">
+                <button mat-button (click)="showCreateRule = false" style="color: var(--text-muted)">Cancel</button>
+                <button mat-raised-button color="primary" (click)="createRule()" [disabled]="!newRule.triggerType || !newRule.actionType || creatingRule()">
+                  @if (creatingRule()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    Create Rule
+                  }
+                </button>
+              </div>
+            </div>
+          } @else {
+            <button class="add-rule-btn" (click)="showCreateRule = true">
+              <mat-icon>add</mat-icon>
+              Add Automation Rule
+            </button>
+          }
+
+          <mat-divider class="my-4"></mat-divider>
+
+          <!-- Rules List -->
+          @if (loadingRules()) {
+            <div class="flex justify-center py-8">
+              <mat-spinner diameter="32"></mat-spinner>
+            </div>
+          } @else if (rules().length === 0) {
+            <div class="empty-state">
+              <mat-icon>smart_toy</mat-icon>
+              <p>No automation rules yet</p>
+              <span>Automate repetitive tasks like labeling, assigning, and moving cards.</span>
+            </div>
+          } @else {
+            <div class="rules-list">
+              @for (rule of rules(); track rule.id) {
+                <div class="rule-item" [class.disabled]="!rule.isEnabled">
+                  <div class="rule-header">
+                    <div class="rule-info">
+                      <span class="rule-name">{{ rule.name || 'Unnamed Rule' }}</span>
+                      <span class="rule-meta">by {{ rule.createdByUserName }}</span>
+                    </div>
+                    <div class="rule-actions">
+                      <mat-slide-toggle
+                        [checked]="rule.isEnabled"
+                        (change)="toggleRule(rule)"
+                        color="primary">
+                      </mat-slide-toggle>
+                      <button mat-icon-button class="delete-rule-btn" (click)="deleteRule(rule.id)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="rule-description text-sm sm:text-base">
+                    <span class="trigger-badge">{{ formatTrigger(rule.triggerType) }}</span>
+                    @if (rule.triggerValue) {
+                      <span class="rule-value">"{{ rule.triggerValue }}"</span>
+                    }
+                    <mat-icon class="arrow-icon hidden sm:block">arrow_forward</mat-icon>
+                    <span class="action-badge">{{ formatAction(rule.actionType) }}</span>
+                    @if (rule.actionValue) {
+                      <span class="rule-value">"{{ rule.actionValue }}"</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+
+  <div class="dialog-actions px-4 sm:px-6 py-4">
+    <button mat-button (click)="dialogRef.close()" style="color: var(--text-muted)">Cancel</button>
+    <button mat-raised-button color="primary" (click)="saveSettings()">Save Changes</button>
+  </div>
+</div>

@@ -1,0 +1,95 @@
+<div class="dialog-wrapper p-4 sm:p-6">
+  <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+    <mat-icon class="text-indigo-400">add_task</mat-icon>
+    Add Card
+  </h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <mat-form-field appearance="outline" class="w-full mb-4">
+      <mat-label>Title</mat-label>
+      <input matInput formControlName="title" placeholder="Enter card title">
+      @if (form.get('title')?.hasError('required') && form.get('title')?.touched) {
+        <mat-error>Title is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full mb-4">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="3"></textarea>
+    </mat-form-field>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <mat-form-field appearance="outline">
+        <mat-label>Type</mat-label>
+        <mat-select formControlName="type">
+          <mat-option value="Task">
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-blue-400 icon-sm">check_box_outline_blank</mat-icon>
+              Task
+            </div>
+          </mat-option>
+          <mat-option value="Story">
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-emerald-400 icon-sm">auto_stories</mat-icon>
+              Story
+            </div>
+          </mat-option>
+          <mat-option value="Bug">
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-red-400 icon-sm">bug_report</mat-icon>
+              Bug
+            </div>
+          </mat-option>
+          <mat-option value="Epic">
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-purple-400 icon-sm">bolt</mat-icon>
+              Epic
+            </div>
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Priority</mat-label>
+        <mat-select formControlName="priority">
+          <mat-option value="Low">Low</mat-option>
+          <mat-option value="Medium">Medium</mat-option>
+          <mat-option value="High">High</mat-option>
+          <mat-option value="Urgent">Urgent</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      <mat-form-field appearance="outline">
+        <mat-label>Due Date</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="dueDate">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Story Points</mat-label>
+        <input matInput type="number" formControlName="storyPoints" min="0" max="100" placeholder="0">
+        <mat-icon matSuffix class="text-indigo-400 text-sm">speed</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Est. Hours</mat-label>
+        <input matInput type="number" formControlName="estimatedHours" min="0" step="0.5" placeholder="0">
+        <mat-icon matSuffix class="text-indigo-400 text-sm">timer</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="flex justify-end gap-3">
+      <button mat-button type="button" (click)="dialogRef.close()">Cancel</button>
+      <button mat-raised-button color="primary" type="submit"
+              [disabled]="loading() || form.invalid">
+        @if (loading()) {
+          <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
+        }
+        Add Card
+      </button>
+    </div>
+  </form>
+</div>

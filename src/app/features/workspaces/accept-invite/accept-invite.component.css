@@ -1,0 +1,7 @@
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+}
+.bg-gradient-to-br { background: linear-gradient(to bottom right, var(--tw-gradient-stops)); }

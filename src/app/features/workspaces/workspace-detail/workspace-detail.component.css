@@ -1,0 +1,144 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.glass-btn {
+  color: var(--text-main);
+  border-color: var(--input-border);
+  &:hover { border-color: var(--text-main); background: var(--card-bg); }
+}
+
+.bg-primary { background-color: var(--color-primary); }
+.text-primary { color: var(--color-primary); }
+.border-primary
+ { border-color: rgba(139, 92, 246, 0.5); }
+.bg-primary { background-color: rgba(139, 92, 246, 0.2); }
+
+/* Analytics Stat Cards */
+.stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--card-bg-hover);
+    border-color: var(--card-border-hover);
+    transform: translateY(-2px);
+  }
+}
+
+@media (min-width: 640px) {
+  .stat-card {
+    border-radius: 16px;
+    padding: 20px;
+  }
+}
+
+.stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+
+@media (min-width: 640px) {
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  }
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+@media (min-width: 640px) {
+  .stat-value { font-size: 1.75rem; }
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+@media (min-width: 640px) {
+  .stat-label { font-size: 0.8rem; }
+}
+
+/* Trend Chart */
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 80px;
+  padding: 8px 0;
+}
+
+@media (min-width: 640px) {
+  .trend-chart { gap: 3px; height: 120px; }
+}
+
+.trend-bar-wrapper {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  cursor: default;
+}
+
+.trend-bar {
+  width: 100%;
+  min-height: 4px;
+  background: linear-gradient(to top, rgba(139, 92, 246, 0.8), rgba(99, 102, 241, 0.6));
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease;
+
+  &:hover {
+    background: linear-gradient(to top, rgba(139, 92, 246, 1), rgba(99, 102, 241, 0.9));
+  }
+}
+
+@media (min-width: 640px) {
+  .trend-bar { border-radius: 3px 3px 0 0; }
+}
+
+/* Webhook Event Chips */
+.event-chip {
+  cursor: pointer;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+}
+
+@media (min-width: 640px) {
+  .glass-panel { border-radius: 16px; }
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

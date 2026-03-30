@@ -1,0 +1,458 @@
+<div class="board-container h-full flex flex-col"
+     [style.background]="board()?.backgroundColor"
+     [style.backgroundImage]="board()?.backgroundImageUrl ? 'url(' + board()?.backgroundImageUrl + ')' : board()?.backgroundColor ? '' : ''">
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="flex flex-col items-center justify-center h-full">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p class="mt-4 text-sm font-medium" style="color: var(--text-muted)">Loading board...</p>
+    </div>
+  } @else if (board()) {
+    <!-- Board Header -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between px-3 sm:px-4 md:px-6 py-3 border-b border-white/5 bg-white/5 backdrop-blur-md gap-3 sm:gap-4 transition-all">
+      <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar scroll-smooth">
+        <h1 class="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap" style="color: var(--text-main)">{{ board()?.name }}</h1>
+        <div class="h-6 w-px bg-white/10 shrink-0"></div>
+        <div class="flex items-center gap-2 sm:gap-3 ml-1 sm:ml-2">
+           <!-- Filter Input -->
+           <div class="relative group hidden sm:block">
+             <input type="text"
+                    [ngModel]="filterKeyword()"
+                    (ngModelChange)="filterKeyword.set($event)"
+                    placeholder="Filter cards..."
+                    class="bg-white/10 border border-white/10 rounded-full py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 w-32 focus:w-48 transition-all placeholder:text-white/30"
+                    style="color: var(--text-main)">
+             <mat-icon class="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 text-sm icon-sm">filter_list</mat-icon>
+             @if (filterKeyword()) {
+               <button mat-icon-button class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center -mr-1 text-white/40 hover:text-white"
+                       (click)="filterKeyword.set('')">
+                 <mat-icon class="icon-xs">close</mat-icon>
+               </button>
+             }
+           </div>
+
+           <span class="text-[10px] sm:text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style="background: var(--badge-bg); color: var(--text-muted)">
+             {{ lists().length }} Lists
+           </span>
+           <!-- Connected state removed to avoid redundancy with Online presence -->
+        </div>
+      </div>
+      <div class="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end overflow-x-auto hide-scrollbar pb-2 md:pb-0">
+         <div class="flex items-center gap-2 shrink-0">
+           <!-- Online Presence Avatars -->
+           @if (presence().length > 0) {
+             <div class="flex items-center gap-1 mr-1 sm:mr-2">
+               <div class="flex -space-x-2">
+                 @for (user of presence().slice(0, 5); track user.connectionId) {
+                   <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full ring-2 ring-[#0f172a] bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-[9px] sm:text-[10px] text-white font-bold cursor-default"
+                        [matTooltip]="user.userName">
+                     {{ user.userName.charAt(0).toUpperCase() }}
+                   </div>
+                 }
+                 @if (presence().length > 5) {
+                   <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full ring-2 ring-[#0f172a] bg-slate-600 flex items-center justify-center text-[9px] sm:text-[10px] text-white font-bold">
+                     +{{ presence().length - 5 }}
+                   </div>
+                 }
+               </div>
+               <span class="text-[9px] sm:text-[10px] text-emerald-400 font-medium ml-1 hidden sm:inline">online</span>
+             </div>
+           }
+         </div>
+
+         <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+           <button class="glass-btn flex items-center justify-center p-1.5 sm:px-3 sm:py-2 h-8 sm:h-9 rounded-lg hover:bg-white/10 transition-colors" (click)="loadBoard()">
+              <mat-icon class="icon-sm sm:mr-1">refresh</mat-icon>
+              <span class="hidden sm:inline text-sm font-medium">Sync</span>
+           </button>
+
+           <button class="glass-btn flex items-center justify-center p-1.5 sm:px-3 sm:py-2 h-8 sm:h-9 rounded-lg hover:bg-white/10 transition-colors" (click)="showSprintPanel = !showSprintPanel; loadSprints()">
+              <mat-icon class="icon-sm sm:mr-1">speed</mat-icon>
+              <span class="hidden sm:inline text-sm font-medium">Sprints</span>
+           </button>
+
+           <button class="glass-btn flex items-center justify-center p-1.5 sm:px-3 sm:py-2 h-8 sm:h-9 rounded-lg hover:bg-white/10 transition-colors" (click)="showArchivedLists = !showArchivedLists">
+              <mat-icon class="icon-sm sm:mr-1">inventory_2</mat-icon>
+              <span class="hidden sm:inline text-sm font-medium">Archived</span>
+           </button>
+
+           <button mat-icon-button class="text-white/60 hover:text-white w-8 h-8 flex items-center justify-center -ml-1 sm:ml-0" style="color: var(--text-muted)" [matMenuTriggerFor]="boardMenu">
+              <mat-icon>more_horiz</mat-icon>
+           </button>
+           <mat-menu #boardMenu="matMenu">
+             <button mat-menu-item (click)="openBoardSettings()">
+               <mat-icon>settings</mat-icon>
+               <span>Board Settings</span>
+             </button>
+             <mat-divider></mat-divider>
+             <button mat-menu-item (click)="deleteBoard()">
+               <mat-icon class="text-red-400">delete</mat-icon>
+               <span class="text-red-400">Delete Board</span>
+             </button>
+           </mat-menu>
+         </div>
+      </div>
+
+      <!-- Mobile Filter -->
+      <div class="relative group sm:hidden w-full">
+         <input type="text"
+                [ngModel]="filterKeyword()"
+                (ngModelChange)="filterKeyword.set($event)"
+                placeholder="Filter cards..."
+                class="bg-white/10 border border-white/10 rounded-full py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 w-full transition-all placeholder:text-white/30"
+                style="color: var(--text-main)">
+         <mat-icon class="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 text-sm icon-sm">filter_list</mat-icon>
+         @if (filterKeyword()) {
+           <button mat-icon-button class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center -mr-1 text-white/40 hover:text-white"
+                   (click)="filterKeyword.set('')">
+             <mat-icon class="icon-xs">close</mat-icon>
+           </button>
+         }
+       </div>
+    </header>
+
+    <!-- Archived Lists Drawer -->
+    @if (showArchivedLists) {
+      <div class="archived-drawer glass-panel animate-slide-in">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold flex items-center gap-2" style="color: var(--text-main)">
+            <mat-icon style="color: var(--text-muted)">inventory_2</mat-icon>
+            Archived Lists
+          </h3>
+          <button mat-icon-button (click)="showArchivedLists = false">
+            <mat-icon style="color: var(--text-muted)">close</mat-icon>
+          </button>
+        </div>
+        @if (archivedLists().length === 0) {
+          <div class="text-center py-8" style="color: var(--text-disabled)">
+            <mat-icon class="text-4xl mb-2">archive</mat-icon>
+            <p>No archived lists</p>
+          </div>
+        } @else {
+          <div class="space-y-2">
+            @for (list of archivedLists(); track list.id) {
+              <div class="flex items-center justify-between p-3 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5" style="background: rgba(255,255,255,0.05)">
+                <span class="text-sm sm:text-base truncate mr-2" style="color: var(--text-main)">{{ list.name }}</span>
+                <button mat-stroked-button class="glass-btn-sm shrink-0" (click)="restoreList(list.id)">
+                  <mat-icon class="icon-sm">restore</mat-icon>
+                  Restore
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Sprint Panel Drawer -->
+    @if (showSprintPanel) {
+      <div class="sprint-drawer glass-panel animate-slide-in">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold flex items-center gap-2" style="color: var(--text-main)">
+            <mat-icon class="text-indigo-400">speed</mat-icon>
+            Sprints
+          </h3>
+          <button mat-icon-button (click)="showSprintPanel = false">
+            <mat-icon style="color: var(--text-muted)">close</mat-icon>
+          </button>
+        </div>
+
+        <!-- Create Sprint -->
+        @if (showCreateSprint) {
+          <div class="mb-4 p-3 rounded-lg border" style="background: rgba(255,255,255,0.05); border-color: var(--card-border)">
+            <input class="w-full bg-transparent border rounded px-3 py-2 text-sm mb-2 focus:outline-none focus:border-indigo-500"
+                   style="border-color: var(--input-border); color: var(--text-main)"
+                   [(ngModel)]="newSprintName" placeholder="Sprint name...">
+            <textarea class="w-full bg-transparent border rounded px-3 py-2 text-sm mb-2 focus:outline-none focus:border-indigo-500"
+                      style="border-color: var(--input-border); color: var(--text-main)"
+                      [(ngModel)]="newSprintGoal" placeholder="Sprint goal (optional)" rows="2"></textarea>
+            <div class="flex gap-2">
+              <button mat-flat-button color="primary" class="flex-1 text-sm" (click)="createSprint()" [disabled]="!newSprintName.trim()">
+                Create
+              </button>
+              <button mat-button class="text-sm" style="color: var(--text-muted)" (click)="showCreateSprint = false">Cancel</button>
+            </div>
+          </div>
+        } @else {
+          <button class="w-full py-2 mb-4 flex items-center justify-center gap-2 rounded-lg transition-colors text-sm font-medium border border-dashed hover:border-indigo-500/50 hover:bg-black/5 dark:hover:bg-white/5"
+                  style="color: var(--text-muted); border-color: var(--card-border);"
+                  (click)="showCreateSprint = true">
+            <mat-icon class="icon-sm">add</mat-icon>
+            New Sprint
+          </button>
+        }
+
+        <!-- Sprint List -->
+        @if (sprints().length === 0) {
+          <div class="text-center py-6" style="color: var(--text-disabled)">
+            <mat-icon class="text-3xl mb-2">speed</mat-icon>
+            <p class="text-sm">No sprints yet</p>
+          </div>
+        } @else {
+          <div class="space-y-3">
+            @for (sprint of sprints(); track sprint.id) {
+              <div class="p-3 rounded-lg border transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                   style="background: rgba(255,255,255,0.05); border-color: var(--card-border)">
+                <div class="flex items-center justify-between mb-2 gap-2">
+                  <span class="text-sm font-semibold truncate" style="color: var(--text-main)">{{ sprint.name }}</span>
+                  <span class="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0"
+                        [class.bg-blue-500/20]="sprint.status === 'Planning'"
+                        [class.text-blue-500]="sprint.status === 'Planning'"
+                        [class.bg-emerald-500/20]="sprint.status === 'Active'"
+                        [class.text-emerald-500]="sprint.status === 'Active'"
+                        [class.bg-slate-500/20]="sprint.status === 'Completed'"
+                        [class.text-slate-500]="sprint.status === 'Completed'">
+                    {{ sprint.status }}
+                  </span>
+                </div>
+                @if (sprint.goal) {
+                  <p class="text-xs mb-2 line-clamp-2" style="color: var(--text-muted)">{{ sprint.goal }}</p>
+                }
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs mb-2" style="color: var(--text-disabled)">
+                  <span class="whitespace-nowrap">{{ sprint.cardCount }} cards</span>
+                  <span class="whitespace-nowrap">{{ sprint.totalStoryPoints }} SP</span>
+                  @if (sprint.completedCardCount > 0) {
+                    <span class="text-emerald-500 font-medium whitespace-nowrap">{{ sprint.completedCardCount }} done</span>
+                  }
+                </div>
+                @if (sprint.cardCount > 0 && sprint.status !== 'Completed') {
+                  <mat-progress-bar mode="determinate" [value]="(sprint.completedCardCount / sprint.cardCount) * 100" class="mb-2 rounded-full"></mat-progress-bar>
+                }
+                <div class="flex gap-2">
+                  @if (sprint.status === 'Planning') {
+                    <button mat-stroked-button class="glass-btn-sm flex-1" (click)="startSprint(sprint.id)">
+                      <mat-icon class="icon-sm">play_arrow</mat-icon> Start
+                    </button>
+                  }
+                  @if (sprint.status === 'Active') {
+                    <button mat-stroked-button class="glass-btn-sm flex-1" (click)="completeSprint(sprint.id)">
+                      <mat-icon class="icon-sm">check</mat-icon> Complete
+                    </button>
+                  }
+                  @if (sprint.status !== 'Active') {
+                    <button mat-icon-button class="text-red-400/50 hover:text-red-400 w-7 h-7" (click)="deleteSprint(sprint.id)">
+                      <mat-icon class="icon-sm">delete</mat-icon>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Board Content (Kanban columns) -->
+    <div class="flex-1 overflow-x-auto overflow-y-hidden p-3 sm:p-4 md:p-6 custom-scrollbar-x custom-scrollbar">
+      <div class="flex h-full gap-4 sm:gap-6 items-start pb-4" cdkDropListGroup>
+        <!-- Lists -->
+        @for (list of filteredLists(); track list.id) {
+          <div class="list-wrapper shrink-0 h-full max-h-full">
+            <div class="list-container glass-panel flex flex-col w-[85vw] sm:w-[300px] md:w-80 max-h-full">
+              <!-- List Header with Inline Edit -->
+              <div class="p-3 sm:p-4 flex items-center justify-between group border-b border-white/5 bg-white/5">
+                @if (editingListId() === list.id) {
+                  <input #listNameInput
+                         class="flex-1 bg-white/10 font-bold px-3 py-1.5 rounded outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm sm:text-base"
+                         style="color: var(--text-main)"
+                         [value]="list.name"
+                         (blur)="saveListName(list.id, $event)"
+                         (keyup.enter)="saveListName(list.id, $event)"
+                         (keyup.escape)="cancelEditListName()">
+                } @else {
+                  <div class="flex items-center gap-2 flex-1 min-w-0">
+                     <h3 class="font-bold tracking-wide truncate cursor-pointer hover:text-indigo-400 transition-colors text-sm sm:text-base"
+                         style="color: var(--text-main)"
+                         (dblclick)="startEditListName(list.id)">
+                       {{ list.name }}
+                     </h3>
+                     @if (list.cards.length > 0) {
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: var(--badge-bg); color: var(--text-muted)">
+                           {{ list.cards.length }}
+                        </span>
+                     }
+                  </div>
+                }
+                <div class="flex items-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-1 sm:ml-2 shrink-0">
+                  <button mat-icon-button class="subtle-btn w-8 h-8 flex items-center justify-center p-0" [matMenuTriggerFor]="listMenu">
+                    <mat-icon class="icon-sm transition-colors" style="color: var(--text-muted)">more_horiz</mat-icon>
+                  </button>
+                </div>
+                <mat-menu #listMenu="matMenu">
+                  <button mat-menu-item (click)="startEditListName(list.id)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Rename List</span>
+                  </button>
+                  <button mat-menu-item (click)="archiveList(list.id)">
+                    <mat-icon>archive</mat-icon>
+                    <span>Archive List</span>
+                  </button>
+                  <mat-divider></mat-divider>
+                  <button mat-menu-item (click)="deleteList(list.id)">
+                    <mat-icon class="text-red-400">delete</mat-icon>
+                    <span class="text-red-400">Delete List</span>
+                  </button>
+                </mat-menu>
+              </div>
+
+              <!-- Cards Container -->
+              <div class="flex-1 overflow-y-auto px-2 py-2 min-h-20 custom-scrollbar"
+                   cdkDropList
+                   [id]="'list-' + list.id"
+                   [cdkDropListData]="list.cards"
+                   [cdkDropListConnectedTo]="connectedLists()"
+                   [cdkDropListDisabled]="!!filterKeyword()"
+                   (cdkDropListDropped)="drop($event, list.id)">
+
+                @for (card of list.cards; track card.id) {
+                  <div class="card-item mb-2 sm:mb-3 group relative" cdkDrag>
+                    <mat-card class="glass-card cursor-pointer border-l-4"
+                              [ngStyle]="{
+                                'border-left-color': card.priority === 'Low' ? '#10b981' :
+                                                     card.priority === 'Medium' ? '#3b82f6' :
+                                                     card.priority === 'High' ? '#f97316' :
+                                                     card.priority === 'Urgent' ? '#ef4444' : 'transparent'
+                              }"
+                              (click)="openCardDetail(card)">
+                      <!-- Quick Action Button -->
+                      <button mat-icon-button
+                              class="quick-action-btn opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity absolute top-2 right-1 z-10"
+                              (click)="$event.stopPropagation()"
+                              [matMenuTriggerFor]="cardQuickMenu">
+                        <mat-icon class="icon-sm" style="color: var(--text-muted)">more_vert</mat-icon>
+                      </button>
+                      <mat-menu #cardQuickMenu="matMenu">
+                        <button mat-menu-item (click)="openCardDetail(card)">
+                          <mat-icon>edit</mat-icon>
+                          <span>Edit Card</span>
+                        </button>
+                        <!-- <button mat-menu-item (click)="archiveCard(card.id)">
+                          <mat-icon>archive</mat-icon>
+                          <span>Archive Card</span>
+                        </button> -->
+                        <mat-divider></mat-divider>
+                        <button mat-menu-item (click)="deleteCard(card.id, list.id)">
+                          <mat-icon class="text-red-400">delete</mat-icon>
+                          <span class="text-red-400">Delete Card</span>
+                        </button>
+                      </mat-menu>
+
+                      <!-- Cover Image -->
+                      @if (getCoverImage(card); as cover) {
+                        <div class="h-24 sm:h-32 w-full overflow-hidden border-b border-white/5 relative">
+                          <div class="absolute inset-0 bg-black/20 text-black"></div>
+                          <img [src]="cover.fileUrl" class="w-full h-full object-cover" alt="cover">
+                        </div>
+                      }
+
+                      <div class="p-2 sm:p-3">
+                        <!-- Issue Type + Title -->
+                        <div class="flex items-start justify-between gap-1 sm:gap-2 mb-2 pr-7">
+                          <div class="flex items-center gap-1.5 min-w-0 w-full">
+                            <mat-icon class="icon-xs shrink-0"
+                                      [class.text-blue-500]="card.type === 'Task'"
+                                      [class.text-emerald-500]="card.type === 'Story'"
+                                      [class.text-red-500]="card.type === 'Bug'"
+                                      [class.text-purple-500]="card.type === 'Epic'"
+                                      [matTooltip]="card.type || 'Task'"
+                            >{{ getTypeIcon(card.type) }}</mat-icon>
+                            <span class="text-[13px] sm:text-sm font-medium leading-snug w-full truncate whitespace-normal" style="color: var(--text-main); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal;">{{ card.title }}</span>
+                            @if (card.lockedByUserId) {
+                              <mat-icon class="text-xs text-amber-500 icon-xs shrink-0 ml-1" matTooltip="Locked">lock</mat-icon>
+                            }
+                          </div>
+                        </div>
+
+                        <!-- Labels -->
+                        @if (card.labels.length) {
+                          <div class="flex flex-wrap gap-1 mb-2">
+                            @for (label of card.labels; track label.id) {
+                              <div class="h-1.5 w-6 rounded-full opacity-80"
+                                   [style.backgroundColor]="label.color"
+                                   [matTooltip]="label.name"></div>
+                            }
+                          </div>
+                        }
+
+                        <div class="flex items-center justify-between mt-2" style="color: var(--text-disabled)">
+                          <div class="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs">
+                            @if (card.storyPoints) {
+                              <div class="flex items-center gap-0.5 px-1 py-0.5 rounded bg-indigo-500/10 text-indigo-500 dark:text-indigo-300 font-bold" matTooltip="Story Points">
+                                {{ card.storyPoints }} SP
+                              </div>
+                            }
+                            @if (card.dueDate) {
+                              <div class="flex items-center gap-0.5" [class.text-red-500]="isOverdue(card.dueDate)">
+                                <mat-icon class="icon-xs">schedule</mat-icon>
+                                <span>{{ card.dueDate | date:'MMM d' }}</span>
+                              </div>
+                            }
+                            @if (card.commentCount) {
+                              <div class="flex items-center gap-0.5">
+                                <mat-icon class="icon-xs">chat_bubble_outline</mat-icon>
+                                <span>{{ card.commentCount }}</span>
+                              </div>
+                            }
+                            @if (card.loggedHours > 0) {
+                              <div class="flex items-center gap-0.5 hidden sm:flex" matTooltip="Logged time">
+                                <mat-icon class="icon-xs">timer</mat-icon>
+                                <span>{{ card.loggedHours }}h</span>
+                              </div>
+                            }
+                            @if (isSomeoneTyping(card.id)) {
+                              <div class="flex items-center gap-1 text-indigo-400 animate-pulse" [matTooltip]="getTypingTooltip(card.id)">
+                                <mat-icon class="icon-xs" style="font-size: 14px; width: 14px; height: 14px;">edit</mat-icon>
+                              </div>
+                            }
+                          </div>
+
+                          <!-- Assignees Avatars -->
+                          @if (card.assignees.length) {
+                            <div class="flex -space-x-1.5 sm:-space-x-2 shrink-0">
+                              @for (assignee of card.assignees.slice(0, 3); track assignee.userId) {
+                                <div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-2 ring-[#0f172a] bg-indigo-500 flex items-center justify-center text-[7px] sm:text-[8px] text-white font-bold"
+                                     [matTooltip]="assignee.firstName">
+                                  {{ assignee.firstName.charAt(0) }}
+                                </div>
+                              }
+                              @if (card.assignees.length > 3) {
+                                <div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-2 ring-[#0f172a] bg-slate-700 flex items-center justify-center text-[7px] sm:text-[8px] text-white font-bold">
+                                  +{{ card.assignees.length - 3 }}
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </mat-card>
+                    <div *cdkDragPlaceholder class="custom-placeholder"></div>
+                  </div>
+                }
+              </div>
+
+              <!-- Add Card Button -->
+              <div class="p-2 sm:p-3 mt-auto shrink-0 bg-white/5 border-t border-white/5">
+                <button class="w-full py-1.5 sm:py-2 flex items-center justify-center gap-1 sm:gap-2 rounded-lg transition-colors text-[13px] sm:text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5"
+                        style="color: var(--text-muted)"
+                        (click)="openCreateCardDialog(list.id)">
+                  <mat-icon class="icon-sm">add</mat-icon>
+                  Add Card
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Create List Button -->
+        <div class="shrink-0 w-[85vw] sm:w-[300px] md:w-80 h-10 sm:h-12">
+          <button class="w-full h-full glass-panel flex items-center justify-center gap-2 font-medium transition-all hover:bg-black/5 dark:hover:bg-white/10"
+                  style="color: var(--text-muted)"
+                  (click)="openCreateListDialog()">
+            <mat-icon>add_circle_outline</mat-icon>
+            Add Another List
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

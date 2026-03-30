@@ -1,0 +1,4 @@
+.dialog-wrapper {
+  background: var(--color-bg-secondary);
+  color: var(--text-main);
+}

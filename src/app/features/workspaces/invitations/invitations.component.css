@@ -1,0 +1,30 @@
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+}
+
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-4px);
+    border-color: var(--card-border-hover);
+    box-shadow: var(--glass-shadow);
+  }
+}
+
+.glass-btn {
+  color: var(--text-main);
+  border-color: var(--input-border);
+}
+
+::ng-deep .mat-mdc-button.glass-btn[disabled] {
+  color: var(--text-disabled) !important;
+  border-color: var(--card-border) !important;
+}

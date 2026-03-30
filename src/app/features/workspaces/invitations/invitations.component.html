@@ -1,0 +1,83 @@
+<div class="h-full flex flex-col p-4 sm:p-6 md:p-8 overflow-y-auto custom-scrollbar">
+  <div class="max-w-5xl mx-auto w-full">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold mb-2 tracking-tight flex items-center gap-3" style="color: var(--text-main)">
+        <mat-icon class="text-indigo-400" style="width: 32px; height: 32px; font-size: 32px;">mail</mat-icon>
+        Pending Invitations
+      </h1>
+      <p class="text-lg" style="color: var(--text-muted)">Manage your workspace invitations below.</p>
+    </div>
+
+    @if (loading()) {
+      <div class="flex flex-col items-center justify-center py-20">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p class="mt-4 text-sm font-medium" style="color: var(--text-muted)">Checking for invitations...</p>
+      </div>
+    } @else if (invitations().length === 0) {
+      <div class="flex flex-col items-center justify-center py-16 sm:py-20 text-center glass-panel p-6 sm:p-10">
+        <div class="w-20 h-20 rounded-full flex items-center justify-center mb-6" style="background: rgba(255,255,255,0.05)">
+          <mat-icon class="text-4xl opacity-30">drafts</mat-icon>
+        </div>
+        <h3 class="text-xl font-semibold mb-2" style="color: var(--text-main)">No pending invitations</h3>
+        <p class="max-w-sm" style="color: var(--text-muted)">You're all caught up! New invitations will appear here.</p>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        @for (invite of invitations(); track invite.token) {
+          <div class="glass-card relative group overflow-hidden flex flex-col">
+            <!-- Decorative background elements -->
+            <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            
+            <div class="p-6 flex-1 flex flex-col relative z-10">
+              <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg transform -rotate-3 text-white font-bold text-xl border border-white/10 shrink-0">
+                  {{ invite.workspaceName.charAt(0).toUpperCase() }}
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-medium shadow-inner" style="background: var(--badge-bg); color: var(--text-main); border: 1px solid var(--input-border)">
+                  {{ invite.role }}
+                </span>
+              </div>
+              
+              <h3 class="text-xl font-bold mb-1 truncate group-hover:text-indigo-300 transition-colors" style="color: var(--text-main)">
+                {{ invite.workspaceName }}
+              </h3>
+              
+              <p class="text-sm mb-6 flex-1 line-clamp-2" style="color: var(--text-muted)">
+                Invited by <span class="font-medium" style="color: var(--text-main)">{{ invite.invitedByUserName }}</span>
+              </p>
+              
+              <div class="flex items-center gap-2 mb-2">
+                <button mat-flat-button color="primary" class="flex-1 rounded-lg" 
+                        [disabled]="processingToken() === invite.token"
+                        (click)="accept(invite)">
+                  @if (processingToken() === invite.token && currentAction() === 'accept') {
+                    <mat-spinner diameter="20" class="inline-block"></mat-spinner>
+                  } @else {
+                    <span class="flex items-center justify-center gap-1"><mat-icon class="text-sm scale-90">check</mat-icon> Accept</span>
+                  }
+                </button>
+                
+                <button mat-stroked-button class="glass-btn flex-1 rounded-lg hover:text-red-400 opacity-80 hover:opacity-100 transition-all"
+                        style="color: var(--text-main); border-color: var(--input-border);"
+                        [disabled]="processingToken() === invite.token"
+                        (click)="reject(invite)">
+                  @if (processingToken() === invite.token && currentAction() === 'reject') {
+                    <mat-spinner diameter="20" class="inline-block"></mat-spinner>
+                  } @else {
+                    <span class="flex items-center justify-center gap-1"><mat-icon class="text-sm scale-90">close</mat-icon> Reject</span>
+                  }
+                </button>
+              </div>
+              
+              <p class="text-[11px] text-center mt-2 flex items-center justify-center gap-1" style="color: var(--text-disabled)">
+                <mat-icon class="text-[12px] w-3 h-3 text-inherit">schedule</mat-icon>
+                Expires {{ invite.expiresAt | date:'mediumDate' }}
+              </p>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

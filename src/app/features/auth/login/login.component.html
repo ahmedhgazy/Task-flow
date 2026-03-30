@@ -1,0 +1,53 @@
+<div class="auth-page min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+  <!-- Background Effects -->
+  <div class="auth-glow-1 absolute top-0 left-1/4 w-96 h-96 rounded-full blur-[128px] pointer-events-none"></div>
+  <div class="auth-glow-2 absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-[128px] pointer-events-none"></div>
+
+  <!-- Login Card -->
+  <div class="w-full max-w-md relative z-10 animate-fade-in">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-4 transform -rotate-3">
+        <mat-icon class="text-3xl text-white">task_alt</mat-icon>
+      </div>
+      <h1 class="auth-heading text-3xl font-bold mb-2">Welcome Back</h1>
+      <p class="auth-subtext">Sign in to continue to your workspace</p>
+    </div>
+
+    <mat-card class="glass-panel p-6 sm:p-8">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-5">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Email Address</mat-label>
+          <input matInput formControlName="email" placeholder="name@company.com">
+          <mat-error *ngIf="loginForm.get('email')?.hasError('required')">Email is required</mat-error>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('email')">Please enter a valid email</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Password</mat-label>
+          <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder="••••••••">
+          <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button" class="suffix-btn">
+            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          <mat-error *ngIf="loginForm.get('password')?.hasError('required')">Password is required</mat-error>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" class="h-12 text-lg mt-2" [disabled]="loginForm.invalid || loading">
+          @if (loading) {
+            <mat-spinner diameter="24" class="mr-2"></mat-spinner>
+          }
+          Sign In
+        </button>
+      </form>
+
+      <div class="auth-footer mt-8 text-center">
+        Don't have an account?
+        <a routerLink="/register" class="auth-link font-medium no-underline transition-colors">Create account</a>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Footer Info -->
+  <div class="absolute bottom-6 auth-copyright text-sm">
+    &copy; 2024 TaskFlow. Streamline your productivity.
+  </div>
+</div>
