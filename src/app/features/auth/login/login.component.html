@@ -14,6 +14,29 @@
     </div>
 
     <mat-card class="glass-panel p-6 sm:p-8">
+      <!-- Admin Demo Hint -->
+      <div class="mb-6 p-3.5 rounded-xl relative overflow-hidden group hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300 cursor-default">
+        <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-50"></div>
+        <div class="absolute inset-0 border border-indigo-500/20 rounded-xl group-hover:border-indigo-500/40 transition-colors duration-300"></div>
+        
+        <div class="relative z-10 flex flex-col gap-2 relative">
+          <div class="flex items-center gap-2 font-medium text-indigo-500 dark:text-indigo-400">
+            <mat-icon class="text-[18px] w-[18px] h-[18px]">admin_panel_settings</mat-icon>
+            Quick Admin Access
+          </div>
+          <div class="flex flex-col gap-1.5 text-sm font-mono bg-black/5 dark:bg-black/20 p-2.5 rounded-lg border border-black/5 dark:border-white/5">
+            <div class="flex items-center justify-between">
+              <span class="opacity-60 text-xs uppercase tracking-wider">Email</span> 
+              <span class="text-indigo-700 dark:text-indigo-300 select-all font-semibold">admin@taskflow.com</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="opacity-60 text-xs uppercase tracking-wider">Password</span> 
+              <span class="text-indigo-700 dark:text-indigo-300 select-all font-semibold">Admin@123456</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-5">
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Email Address</mat-label>
