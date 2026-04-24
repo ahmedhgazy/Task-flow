@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, DestroyRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -14,7 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { Subject, takeUntil } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BoardService } from '../../../core/services/board.service';
 import { SignalRService } from '../../../core/services/signalr.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -87,7 +87,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     }));
   });
 
-  private destroy$ = new Subject<void>();
+  private destroyRef = inject(DestroyRef);
   private boardId!: string;
 
   constructor(
@@ -108,14 +108,12 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
     this.signalRService.leaveBoard(this.boardId);
   }
 
   loadBoard(): void {
     this.loading.set(true);
-    this.boardService.getBoard(this.boardId).subscribe({
+    this.boardService.getBoard(this.boardId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (board) => {
         this.board.set(board);
         this.lists.set(board.lists);
@@ -129,7 +127,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.connectionState.set('connecting');
     this.signalRService.connect();
 
-    this.signalRService.connectionState$.pipe(takeUntil(this.destroy$)).subscribe(state => {
+    this.signalRService.connectionState$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(state => {
       this.connectionState.set(state);
       if (state === 'connected') {
         this.signalRService.joinBoard(this.boardId);
@@ -139,21 +137,21 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   setupRealtimeListeners(): void {
-    this.signalRService.listCreated$.pipe(takeUntil(this.destroy$)).subscribe(list => {
+    this.signalRService.listCreated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(list => {
       this.lists.update(lists => [...lists, (list as any)]);
     });
 
-    this.signalRService.listDeleted$.pipe(takeUntil(this.destroy$)).subscribe(event => {
+    this.signalRService.listDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(event => {
       this.lists.update(lists => lists.filter(l => l.id !== event.listId));
     });
 
-    this.signalRService.cardCreated$.pipe(takeUntil(this.destroy$)).subscribe(() => this.loadBoard());
-    this.signalRService.cardDeleted$.pipe(takeUntil(this.destroy$)).subscribe(() => this.loadBoard());
-    this.signalRService.cardMoved$.pipe(takeUntil(this.destroy$)).subscribe(() => this.loadBoard());
-    this.signalRService.cardUpdated$.pipe(takeUntil(this.destroy$)).subscribe(() => this.loadBoard());
+    this.signalRService.cardCreated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadBoard());
+    this.signalRService.cardDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadBoard());
+    this.signalRService.cardMoved$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadBoard());
+    this.signalRService.cardUpdated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadBoard());
 
     // Presence
-    this.signalRService.boardPresence$.pipe(takeUntil(this.destroy$)).subscribe(users => {
+    this.signalRService.boardPresence$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(users => {
       this.presence.set(users);
     });
   }
@@ -168,7 +166,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       // Update local rank immediately to prevent jumping if re-rendered before server refresh
       event.container.data[event.currentIndex].rank = newRank;
 
-      this.boardService.moveCard(cardId, listId, newRank).subscribe();
+      this.boardService.moveCard(cardId, listId, newRank).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
 
     } else {
       transferArrayItem(
@@ -184,7 +182,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       // Update local rank
       event.container.data[event.currentIndex].rank = newRank;
 
-      this.boardService.moveCard(cardId, listId, newRank).subscribe();
+      this.boardService.moveCard(cardId, listId, newRank).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     }
   }
 
@@ -216,7 +214,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       panelClass: 'dark-dialog'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
       if (result) this.loadBoard();
     });
   }
@@ -228,7 +226,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       panelClass: 'dark-dialog'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
       if (result) this.loadBoard();
     });
   }
@@ -241,14 +239,14 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       data: { card, boardId: this.boardId, workspaceId: this.board()?.workspaceId }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
       if (result) this.loadBoard();
     });
   }
 
   deleteList(listId: string): void {
     if(confirm('Are you sure you want to delete this list?')) {
-        this.boardService.deleteList(listId).subscribe(() => {
+        this.boardService.deleteList(listId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.lists.update(lists => lists.filter(l => l.id !== listId));
         });
     }
@@ -279,7 +277,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     }
 
     if (currentList && newName !== currentList.name) {
-      this.boardService.updateList(listId, { name: newName }).subscribe({
+      this.boardService.updateList(listId, { name: newName }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.lists.update(lists =>
             lists.map(l => l.id === listId ? { ...l, name: newName } : l)
@@ -300,7 +298,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   archiveList(listId: string): void {
-    this.boardService.archiveList(listId).subscribe({
+    this.boardService.archiveList(listId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.lists.update(lists => lists.filter(l => l.id !== listId));
         this.snackBar.open('List archived!', 'Close', { duration: 2000 });
@@ -313,7 +311,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   loadArchivedLists(): void {
-    this.boardService.getArchivedLists(this.boardId).subscribe({
+    this.boardService.getArchivedLists(this.boardId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (lists) => {
         this.archivedLists.set(lists);
       }
@@ -321,7 +319,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   restoreList(listId: string): void {
-    this.boardService.restoreList(listId).subscribe({
+    this.boardService.restoreList(listId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loadBoard();
         this.loadArchivedLists();
@@ -334,7 +332,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   archiveCard(cardId: string): void {
-    this.boardService.archiveCard(cardId).subscribe({
+    this.boardService.archiveCard(cardId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.lists.update(lists =>
           lists.map(l => ({
@@ -352,7 +350,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   deleteCard(cardId: string, listId: string): void {
     if (confirm('Are you sure you want to delete this card?')) {
-      this.boardService.deleteCard(cardId).subscribe({
+      this.boardService.deleteCard(cardId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.lists.update(lists =>
             lists.map(l => l.id === listId
@@ -391,7 +389,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       data: { board: this.board() }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
       if (result) {
         this.board.set(result);
         this.snackBar.open('Board updated', 'Close', { duration: 2000 });
@@ -401,7 +399,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   deleteBoard(): void {
     if (confirm('Are you sure you want to delete this board? This action cannot be undone.')) {
-      this.boardService.deleteBoard(this.boardId).subscribe({
+      this.boardService.deleteBoard(this.boardId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.snackBar.open('Board deleted', 'Close', { duration: 2000 });
           this.router.navigate(['/']);
@@ -414,7 +412,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   loadSprints(): void {
-    this.sprintService.getBoardSprints(this.boardId).subscribe({
+    this.sprintService.getBoardSprints(this.boardId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (sprints) => this.sprints.set(sprints),
       error: () => this.snackBar.open('Failed to load sprints', 'Close', { duration: 3000 })
     });
@@ -426,7 +424,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.sprintService.createSprint(this.boardId, {
       name: this.newSprintName.trim(),
       goal: this.newSprintGoal.trim() || undefined
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.newSprintName = '';
         this.newSprintGoal = '';
@@ -439,7 +437,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   startSprint(sprintId: string): void {
-    this.sprintService.startSprint(sprintId).subscribe({
+    this.sprintService.startSprint(sprintId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loadSprints();
         this.snackBar.open('Sprint started!', 'Close', { duration: 2000 });
@@ -450,7 +448,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   completeSprint(sprintId: string): void {
     if (!confirm('Complete this sprint? Incomplete cards will be moved to the backlog.')) return;
-    this.sprintService.completeSprint(sprintId).subscribe({
+    this.sprintService.completeSprint(sprintId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loadSprints();
         this.loadBoard();
@@ -462,7 +460,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   deleteSprint(sprintId: string): void {
     if (!confirm('Delete this sprint? Cards will be moved back to the backlog.')) return;
-    this.sprintService.deleteSprint(sprintId).subscribe({
+    this.sprintService.deleteSprint(sprintId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loadSprints();
         this.snackBar.open('Sprint deleted', 'Close', { duration: 2000 });

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -12,6 +12,7 @@ import { environment } from '../../../environments/environment';
 import { CardDetailDialogComponent } from '../boards/card-detail-dialog/card-detail-dialog.component';
 import { BoardService } from '../../core/services/board.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface CalendarCard {
   id: string;
@@ -48,6 +49,7 @@ interface CalendarDay {
 export class CalendarComponent implements OnInit {
   loading = signal(true);
   allCards = signal<CalendarCard[]>([]);
+  private destroyRef = inject(DestroyRef);
 
   currentDate = new Date();
   currentYear = signal(this.currentDate.getFullYear());
@@ -124,6 +126,7 @@ export class CalendarComponent implements OnInit {
   loadCards(): void {
     this.loading.set(true);
     this.http.get<CalendarCard[]>(`${environment.apiUrl}/boards/calendar/cards`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (cards) => {
           this.allCards.set(cards);
@@ -149,7 +152,7 @@ export class CalendarComponent implements OnInit {
 
   openCardDetail(calendarCard: CalendarCard): void {
     this.loading.set(true);
-    this.boardService.getCard(calendarCard.id).subscribe({
+    this.boardService.getCard(calendarCard.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (fullCard) => {
         this.loading.set(false);
         const dialogRef = this.dialog.open(CardDetailDialogComponent, {
@@ -162,7 +165,7 @@ export class CalendarComponent implements OnInit {
           }
         });
 
-        dialogRef.afterClosed().subscribe(result => {
+        dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
           if (result) {
             this.loadCards(); // Reload to reflect any potential updates
           }

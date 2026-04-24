@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -12,6 +12,7 @@ import { WorkspaceService } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Workspace } from '../../../core/models/board.model';
 import { CreateWorkspaceDialogComponent } from '../create-workspace-dialog/create-workspace-dialog.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-workspaces-list',
@@ -33,6 +34,7 @@ import { CreateWorkspaceDialogComponent } from '../create-workspace-dialog/creat
 export class WorkspacesListComponent implements OnInit {
   workspaces = signal<Workspace[]>([]);
   loading = signal(true);
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private workspaceService: WorkspaceService,
@@ -42,7 +44,7 @@ export class WorkspacesListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.workspaceService.getWorkspaces().subscribe({
+    this.workspaceService.getWorkspaces().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.workspaces.set(data);
         this.loading.set(false);
@@ -62,7 +64,7 @@ export class WorkspacesListComponent implements OnInit {
       panelClass: 'dark-dialog'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
       if (result) {
         this.loadWorkspaces();
       }
@@ -74,7 +76,7 @@ export class WorkspacesListComponent implements OnInit {
     event.stopPropagation();
 
     if (confirm('Are you sure you want to delete this workspace? This action cannot be undone.')) {
-      this.workspaceService.deleteWorkspace(id).subscribe({
+      this.workspaceService.deleteWorkspace(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.snackBar.open('Workspace deleted', 'Close', { duration: 3000 });
           this.loadWorkspaces();
@@ -87,7 +89,7 @@ export class WorkspacesListComponent implements OnInit {
   }
 
   loadWorkspaces(): void {
-    this.workspaceService.getWorkspaces().subscribe(
+    this.workspaceService.getWorkspaces().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(
       data => this.workspaces.set(data)
     );
   }

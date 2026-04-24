@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, ViewChild, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +26,7 @@ import { WebhookService } from '../../../core/services/webhook.service';
 import { Workspace, Board, WorkspaceMember, WorkspaceDashboard, Webhook } from '../../../core/models/board.model';
 import { CreateBoardDialogComponent } from '../create-board-dialog/create-board-dialog.component';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-workspace-detail',
@@ -60,6 +61,7 @@ export class WorkspaceDetailComponent implements OnInit {
   loading = signal(true);
   sendingInvite = signal(false);
   activeTab = 'boards';
+  private destroyRef = inject(DestroyRef);
 
   showInviteForm = false;
   inviteEmail = '';
@@ -123,13 +125,13 @@ export class WorkspaceDetailComponent implements OnInit {
   loadData(): void {
     this.loading.set(true);
 
-    this.workspaceService.getWorkspace(this.workspaceId).subscribe({
+    this.workspaceService.getWorkspace(this.workspaceId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (workspace) => {
         this.workspace.set(workspace);
       }
     });
 
-    this.boardService.getWorkspaceBoards(this.workspaceId).subscribe({
+    this.boardService.getWorkspaceBoards(this.workspaceId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (boards) => {
         this.boards.set(boards);
         this.loading.set(false);
@@ -146,6 +148,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
   loadMembers(): void {
     this.http.get<WorkspaceMember[]>(`${environment.apiUrl}/workspaces/${this.workspaceId}/members`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(members => {
         this.members.set(members);
         this.updateTabs();
@@ -155,7 +158,7 @@ export class WorkspaceDetailComponent implements OnInit {
   // Analytics
   loadDashboard(): void {
     this.loadingDashboard.set(true);
-    this.analyticsService.getWorkspaceDashboard(this.workspaceId).subscribe({
+    this.analyticsService.getWorkspaceDashboard(this.workspaceId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.dashboard.set(data);
         if (data.completionTrend.length > 0) {
@@ -176,7 +179,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
   // Webhooks
   loadWebhooks(): void {
-    this.webhookService.getWorkspaceWebhooks(this.workspaceId).subscribe({
+    this.webhookService.getWorkspaceWebhooks(this.workspaceId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (hooks) => this.webhooks.set(hooks),
       error: () => this.snackBar.open('Failed to load webhooks', 'Close', { duration: 3000 })
     });
@@ -198,7 +201,7 @@ export class WorkspaceDetailComponent implements OnInit {
       url: this.newWebhook.url,
       secret: this.newWebhook.secret || undefined,
       events: this.newWebhook.events
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.showCreateWebhook = false;
         this.newWebhook = { url: '', secret: '', events: [] };
@@ -214,7 +217,7 @@ export class WorkspaceDetailComponent implements OnInit {
       url: webhook.url,
       events: webhook.events,
       isActive: !webhook.isActive
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.loadWebhooks(),
       error: () => this.snackBar.open('Failed to update webhook', 'Close', { duration: 3000 })
     });
@@ -223,7 +226,7 @@ export class WorkspaceDetailComponent implements OnInit {
   deleteWebhook(webhookId: string): void {
     if (!confirm('Delete this webhook?')) return;
 
-    this.webhookService.deleteWebhook(webhookId).subscribe({
+    this.webhookService.deleteWebhook(webhookId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.webhooks.update(hooks => hooks.filter(h => h.id !== webhookId));
         this.snackBar.open('Webhook deleted', 'Close', { duration: 2000 });
@@ -237,6 +240,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
     this.sendingInvite.set(true);
     this.workspaceService.inviteMember(this.workspaceId, this.inviteEmail, this.inviteRole)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.snackBar.open(`Invitation sent securely to ${this.inviteEmail}!`, 'Close', { duration: 4000 });
@@ -259,7 +263,7 @@ export class WorkspaceDetailComponent implements OnInit {
       panelClass: 'dark-dialog'
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
       if (result) {
         this.loadData();
       }

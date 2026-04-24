@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, OnInit, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../services/auth.service';
 import { WorkspaceService } from '../../services/workspace.service';
 import { ThemeService } from '../../services/theme.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-sidebar',
@@ -34,6 +35,7 @@ export class SidebarComponent implements OnInit {
   pendingInvitationsCount = signal<number>(0);
 
   themeService = inject(ThemeService);
+  private destroyRef = inject(DestroyRef);
 
   toggleCollapse(): void {
     this.isCollapsed.update(v => !v);
@@ -50,7 +52,7 @@ export class SidebarComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.authService.currentUserValue) {
-      this.workspaceService.getMyInvitations().subscribe({
+      this.workspaceService.getMyInvitations().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (invites) => {
           this.pendingInvitationsCount.set(invites.length);
         },

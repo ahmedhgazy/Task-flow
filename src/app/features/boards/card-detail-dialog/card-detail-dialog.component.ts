@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, OnDestroy, signal, ViewChild, ElementRef, computed } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, signal, ViewChild, ElementRef, computed, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -27,9 +27,9 @@ import { WorkspaceService } from '../../../core/services/workspace.service';
 import { CustomAudioPlayerComponent } from '../../../shared/components/custom-audio-player/custom-audio-player.component';
 import { ActivityLogService, ActivityLog } from '../services/activity-log.service';
 import { Card, Comment, CardLabel, CardAssignee, WorkspaceMember, Checklist, ChecklistItem, Attachment, CardType } from '../../../core/models/board.model';
-import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { SignalRService } from '../../../core/services/signalr.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface LabelOption {
   name: string;
@@ -78,7 +78,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
   // Typing Indicator
   typingUsers = signal<string[]>([]);
   typingTimeoutIds = new Map<string, any>();
-  typingSubscription?: Subscription;
+  private destroyRef = inject(DestroyRef);
 
   typingIndicatorText = computed(() => {
     const users = this.typingUsers();
@@ -140,7 +140,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
     this.lockCard();
     this.loadActivityLogs();
 
-    this.typingSubscription = this.signalRService.userTyping$.subscribe(event => {
+    this.signalRService.userTyping$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(event => {
       // GUIDs must be lowercased to avoid strict equality matching issues
       if (
         event.cardId.toLowerCase() === this.card.id.toLowerCase() && 
@@ -181,14 +181,13 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
   }
 
   loadActivityLogs() {
-    this.activityLogService.getCardActivity(this.card.id).subscribe({
+    this.activityLogService.getCardActivity(this.card.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (logs) => this.activityLogs.set(logs)
     });
   }
 
   ngOnDestroy(): void {
     this.voiceService.reset();
-    this.typingSubscription?.unsubscribe();
     this.typingTimeoutIds.forEach(id => clearTimeout(id));
 
     // Release the concurrency lock on the card so others can edit it
@@ -206,18 +205,20 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
 
   loadComments(): void {
     this.commentService.getCardComments(this.card.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(comments => this.comments.set(comments));
   }
 
   loadWorkspaceMembers(): void {
     if (this.data.workspaceId) {
       this.workspaceService.getMembers(this.data.workspaceId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(members => this.workspaceMembers.set(members));
     }
   }
 
   lockCard(): void {
-    this.boardService.lockCard(this.card.id).subscribe({
+    this.boardService.lockCard(this.card.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.isLockedByMe = true;
       },
@@ -231,7 +232,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
     if (this.form.invalid) return;
 
     this.saving.set(true);
-    this.boardService.updateCard(this.card.id, this.form.value).subscribe({
+    this.boardService.updateCard(this.card.id, this.form.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.snackBar.open('Card updated!', 'Close', { duration: 3000 });
         this.dialogRef.close(true);
@@ -246,6 +247,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
   // Labels
   addLabel(label: LabelOption): void {
     this.boardService.addLabel(this.card.id, label.name, label.color)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (newLabel) => {
           this.card.labels.push({ id: newLabel.id, name: newLabel.name, color: newLabel.color });
@@ -265,6 +267,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
 
   removeLabel(label: CardLabel): void {
     this.boardService.removeLabel(this.card.id, label.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.card.labels = this.card.labels.filter(l => l.id !== label.id);
@@ -279,6 +282,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
   // Assignees
   addAssignee(member: WorkspaceMember): void {
     this.boardService.addAssignee(this.card.id, member.userId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.card.assignees.push({
@@ -297,6 +301,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
 
   removeAssignee(assignee: CardAssignee): void {
     this.boardService.removeAssignee(this.card.id, assignee.userId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.card.assignees = this.card.assignees.filter(a => a.userId !== assignee.userId);
@@ -324,6 +329,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
     this.uploadingVoice.set(true);
 
     this.commentService.addVoiceComment(this.card.id, audioBlob, duration)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (comment) => {
           this.comments.update(c => [...c, comment]);
@@ -342,6 +348,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
     if (!this.newComment.trim()) return;
 
     this.commentService.addTextComment(this.card.id, this.newComment)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (comment) => {
           this.comments.update(c => [...c, comment]);
@@ -355,7 +362,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
 
   deleteComment(commentId: string): void {
      if (!confirm('Delete this comment?')) return;
-     this.commentService.deleteComment(commentId).subscribe({
+     this.commentService.deleteComment(commentId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
            this.comments.update(comments => comments.filter(c => c.id !== commentId));
            this.snackBar.open('Comment deleted', 'Close', { duration: 2000 });
@@ -369,7 +376,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
     const title = prompt('Checklist Title:');
     if (!title) return;
 
-    this.checklistService.createChecklist(this.card.id, title).subscribe({
+    this.checklistService.createChecklist(this.card.id, title).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (checklist: Checklist) => {
         if (!this.card.checklists) this.card.checklists = [];
         this.card.checklists.push(checklist);
@@ -382,7 +389,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
   deleteChecklist(checklistId: string): void {
     if (!confirm('Area you sure you want to delete this checklist?')) return;
 
-    this.checklistService.deleteChecklist(checklistId).subscribe({
+    this.checklistService.deleteChecklist(checklistId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.card.checklists = this.card.checklists.filter(cl => cl.id !== checklistId);
         this.snackBar.open('Checklist deleted', 'Close', { duration: 2000 });
@@ -395,7 +402,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
     const content = input.value.trim();
     if (!content) return;
 
-    this.checklistService.addItem(checklistId, content).subscribe({
+    this.checklistService.addItem(checklistId, content).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (item: ChecklistItem) => {
         const checklist = this.card.checklists.find(cl => cl.id === checklistId);
         if (checklist) {
@@ -415,7 +422,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
       // Optimistic Update
       item.isChecked = newState;
 
-      this.checklistService.updateItem(item.id, item.content, newState).subscribe({
+      this.checklistService.updateItem(item.id, item.content, newState).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
               // Success, state already updated
           },
@@ -428,7 +435,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
   }
 
   deleteItem(checklistId: string, itemId: string): void {
-    this.checklistService.deleteItem(itemId).subscribe({
+    this.checklistService.deleteItem(itemId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         const checklist = this.card.checklists.find(cl => cl.id === checklistId);
         if (checklist) {
@@ -457,7 +464,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
     const file = event.target.files[0];
     if (!file) return;
 
-    this.attachmentService.uploadAttachment(this.card.id, file).subscribe({
+    this.attachmentService.uploadAttachment(this.card.id, file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (attachment) => {
             if (!this.card.attachments) this.card.attachments = [];
             this.card.attachments.push(attachment);
@@ -470,7 +477,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
   deleteAttachment(attachmentId: string): void {
       if (!confirm('Delete this attachment?')) return;
 
-      this.attachmentService.deleteAttachment(attachmentId).subscribe({
+      this.attachmentService.deleteAttachment(attachmentId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
               this.card.attachments = this.card.attachments.filter(a => a.id !== attachmentId);
               this.snackBar.open('Attachment deleted', 'Close', { duration: 2000 });
@@ -510,7 +517,7 @@ export class CardDetailDialogComponent implements OnInit, OnDestroy {
 
   deleteCard(): void {
     if (confirm('Are you sure you want to delete this card? This action cannot be undone.')) {
-      this.boardService.deleteCard(this.card.id).subscribe({
+      this.boardService.deleteCard(this.card.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.snackBar.open('Card deleted', 'Close', { duration: 2000 });
           this.dialogRef.close({ deleted: true, cardId: this.card.id });

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { WorkspaceService } from '../../../core/services/workspace.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-accept-invite',
@@ -29,6 +30,7 @@ export class AcceptInviteComponent implements OnInit {
   processing = signal(false);
   errorMessage = '';
   token: string | null = null;
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private route: ActivatedRoute,
@@ -38,7 +40,7 @@ export class AcceptInviteComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       this.token = params['token'];
       this.loading.set(false);
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,6 +8,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { WorkspaceService } from '../../../core/services/workspace.service';
 import { WorkspaceInvitation } from '../../../core/models/board.model';
 import { finalize } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-invitations',
@@ -25,6 +26,7 @@ import { finalize } from 'rxjs/operators';
 export class InvitationsComponent implements OnInit {
   invitations = signal<WorkspaceInvitation[]>([]);
   loading = signal(true);
+  private destroyRef = inject(DestroyRef);
   
   // Track action state for specific invitation token
   processingToken = signal<string | null>(null);
@@ -42,7 +44,7 @@ export class InvitationsComponent implements OnInit {
 
   loadInvitations(): void {
     this.loading.set(true);
-    this.workspaceService.getMyInvitations().subscribe({
+    this.workspaceService.getMyInvitations().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (invites) => {
         this.invitations.set(invites);
         this.loading.set(false);
@@ -59,7 +61,7 @@ export class InvitationsComponent implements OnInit {
     this.currentAction.set('accept');
     
     this.workspaceService.acceptInvitation(invite.token)
-      .pipe(finalize(() => {
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => {
         this.processingToken.set(null);
         this.currentAction.set(null);
       }))
@@ -88,7 +90,7 @@ export class InvitationsComponent implements OnInit {
     this.currentAction.set('reject');
 
     this.workspaceService.rejectInvitation(invite.token)
-      .pipe(finalize(() => {
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => {
         this.processingToken.set(null);
         this.currentAction.set(null);
       }))
