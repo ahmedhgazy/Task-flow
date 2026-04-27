@@ -2,7 +2,7 @@
 
 A real-time collaborative project management app built with Angular 21 and .NET. Think Trello meets Jira — workspaces, Kanban boards, sprint management, voice comments, and live collaboration, all wrapped in a glassmorphism UI with dark/light themes.
 
-**Live Demo**: [taskflow-boards.netlify.app](https://taskflow-boards.netlify.app)  
+**Live Demo**: [taskflow-agile.netlify.app](https://taskflow-agile.netlify.app)  
 **Backend API**: Hosted on [task-flow.runasp.net](https://task-flow.runasp.net)
 
 ---
