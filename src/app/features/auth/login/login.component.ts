@@ -33,6 +33,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   loading = false;
   hidePassword = true;
+  date: number = new Date().getFullYear();
 
   constructor(
     private fb: FormBuilder,
